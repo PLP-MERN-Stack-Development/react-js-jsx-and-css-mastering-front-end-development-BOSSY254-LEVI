@@ -1,19 +1,35 @@
-import React, { useState } from 'react';
-import { useApi } from '../hooks/useApi';
+import React, { useState, useCallback, useRef } from 'react';
+import { useApiWithPagination } from '../hooks/useApiWithPagination';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import Card, { CardHeader, CardBody } from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Loader from '../components/UI/Loader';
+import { debounce } from 'lodash';
 
 const ApiDemo = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const { data: posts, loading, error, refetch } = useApi('https://jsonplaceholder.typicode.com/posts');
+  const {
+    data: posts,
+    loading,
+    error,
+    hasMore,
+    loadMore,
+    search,
+    searchQuery,
+    refetch // Added this
+  } = useApiWithPagination('https://jsonplaceholder.typicode.com/posts', 10);
 
-  const filteredPosts = posts.filter(post =>
-    post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.body.toLowerCase().includes(searchTerm.toLowerCase())
+  const scrollContainerRef = useRef(null);
+  
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      search(value);
+    }, 500),
+    [search]
   );
 
-  if (loading) {
+  const { handleScroll } = useInfiniteScroll(loadMore, hasMore);
+
+  if (loading && posts.length === 0) {
     return (
       <div className="max-w-6xl mx-auto py-8">
         <Card>
@@ -76,19 +92,28 @@ const ApiDemo = () => {
         </CardHeader>
         <CardBody className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+            <div className="flex-1 relative">
+              {loading && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <Loader size="sm" />
+                </div>
+              )}
               <input
                 type="text"
                 placeholder="Search posts by title or content..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchQuery}
+                onChange={(e) => debouncedSearch(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {filteredPosts.slice(0, 6).map(post => (
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="grid gap-4 md:grid-cols-2 max-h-[600px] overflow-y-auto pr-2"
+          >
+            {posts.map(post => (
               <Card key={post.id} className="hover:shadow-lg transition-shadow">
                 <CardBody>
                   <h3 className="font-semibold text-lg mb-2 text-gray-900 dark:text-white line-clamp-2">
@@ -106,12 +131,12 @@ const ApiDemo = () => {
             ))}
           </div>
 
-          {filteredPosts.length === 0 && searchTerm && (
+          {posts.length === 0 && searchQuery && (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <p>No posts found matching "{searchTerm}"</p>
+              <p>No posts found matching "{searchQuery}"</p>
               <Button 
                 variant="outline" 
-                onClick={() => setSearchTerm('')}
+                onClick={() => search('')}
                 className="mt-2"
               >
                 Clear Search
@@ -119,7 +144,7 @@ const ApiDemo = () => {
             </div>
           )}
 
-          {filteredPosts.length === 0 && !searchTerm && (
+          {posts.length === 0 && !searchQuery && (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <p>No posts available</p>
             </div>
@@ -127,12 +152,16 @@ const ApiDemo = () => {
 
           <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
             <span>
-              Showing {Math.min(filteredPosts.length, 6)} of {filteredPosts.length} posts
+              Showing {posts.length} posts
             </span>
-            {filteredPosts.length > 6 && (
-              <span className="text-blue-600 dark:text-blue-400">
-                +{filteredPosts.length - 6} more posts
-              </span>
+            {hasMore && (
+              <Button 
+                variant="outline" 
+                onClick={loadMore}
+                disabled={loading}
+              >
+                {loading ? 'Loading...' : 'Load More'}
+              </Button>
             )}
           </div>
         </CardBody>
