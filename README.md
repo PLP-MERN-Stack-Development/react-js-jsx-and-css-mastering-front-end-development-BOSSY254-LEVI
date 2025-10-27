@@ -7,8 +7,14 @@ A modern, responsive React application for efficient task management, built with
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.3.5-38B2AC.svg)
 ![React Router](https://img.shields.io/badge/React_Router-6.20.0-CA4245.svg)
 
+## 🚀 Live Demo
+
+Experience the PLP Task Manager in action!  
+**[🌐 View Live Application](https://week-3-react.netlify.app/)**
+
 ## 📋 Table of Contents
 
+- [🚀 Live Demo](#-live-demo)
 - [📸 Application Screenshots](#-application-screenshots)
 - [✨ Features](#-features)
 - [🛠️ Tech Stack](#️-tech-stack)
